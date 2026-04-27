@@ -1,0 +1,28 @@
+# ============================================================
+# LPPM IAKN TORAJA - SERVER CONFIGURATION (Production)
+# ============================================================
+
+# 1. Pengaturan Limit PHP (Upload & Memory)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 40M
+    php_value post_max_size 50M
+    php_value max_file_uploads 20
+    php_value memory_limit 256M
+    php_value max_execution_time 60
+    php_value max_input_time 60
+    php_flag expose_php Off
+</IfModule>
+
+# 2. Security Headers Anti-XSS & Anti-Sniffing
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+    Header always append X-Frame-Options SAMEORIGIN
+</IfModule>
+
+# 3. Blokir Akses Langsung ke File Konfigurasi
+<FilesMatch "^\.ht|config\.php|database\.sql">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes
