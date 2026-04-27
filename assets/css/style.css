@@ -3473,8 +3473,156 @@ textarea.form-control {
 }
 
 @media (max-width: 360px) {
-  .stat-sub span {
-    display: block;
+.stat-sub span {
+display: block;
     margin-bottom: 1px;
   }
+}
+
+/* ============================================================
+   Ethical Clearance — Modern Review Modal
+   ============================================================ */
+.ec-modal{
+  position:fixed;inset:0;z-index:1200;display:none;
+  align-items:center;justify-content:center;padding:20px;
+}
+.ec-modal.is-open{display:flex}
+.ec-modal__overlay{
+  position:absolute;inset:0;background:rgba(15,23,42,.55);
+  backdrop-filter:blur(2px);animation:ecFade .18s ease-out;
+}
+.ec-modal__dialog{
+  position:relative;background:#fff;border-radius:14px;
+  width:min(640px,100%);max-height:calc(100vh - 40px);
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 48px -12px rgba(15,23,42,.35),0 0 0 1px rgba(15,23,42,.04);
+  animation:ecPop .22s cubic-bezier(.2,.9,.3,1.1);
+}
+@keyframes ecFade{from{opacity:0}to{opacity:1}}
+@keyframes ecPop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+
+.ec-modal__header{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  padding:16px 18px;border-bottom:1px solid #eef2f7;
+  background:linear-gradient(135deg,#f8fafc 0%,#fff 100%);
+}
+.ec-modal__title{display:flex;align-items:center;gap:12px;min-width:0}
+.ec-modal__title-icon{
+  width:38px;height:38px;border-radius:10px;display:inline-flex;
+  align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#ede9fe,#ddd6fe);color:#5b21b6;flex-shrink:0;
+}
+.ec-modal__title-main{font-size:15px;font-weight:700;color:#0f172a;line-height:1.25}
+.ec-modal__title-sub{font-size:11.5px;color:#64748b;margin-top:2px}
+.ec-modal__close{
+  border:1px solid #e2e8f0;background:#fff;color:#64748b;
+  width:34px;height:34px;border-radius:10px;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:all .15s;flex-shrink:0;
+}
+.ec-modal__close:hover{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+.ec-modal__body{
+  padding:18px;overflow-y:auto;flex:1;
+  background:#fafbfc;
+}
+.ec-modal__footer{
+  padding:12px 18px;border-top:1px solid #eef2f7;background:#fff;
+  display:flex;justify-content:flex-end;gap:8px;
+}
+
+/* Topbar inside modal */
+.ec-topbar{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+  margin-bottom:14px;
+}
+.ec-topbar__idlabel{
+  font-size:10.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:#64748b;margin-bottom:4px;
+}
+.ec-topbar__judul{font-size:13px;font-weight:600;color:#0f172a;line-height:1.35;max-width:440px}
+
+/* Section cards */
+.ec-section{
+  background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+  margin-bottom:12px;overflow:hidden;
+  box-shadow:0 1px 2px rgba(15,23,42,.03);
+}
+.ec-section__head{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;border-bottom:1px solid #eef2f7;
+  background:#f8fafc;
+}
+.ec-section__icon{
+  width:28px;height:28px;border-radius:8px;display:inline-flex;
+  align-items:center;justify-content:center;
+  background:#eef2ff;color:#4338ca;flex-shrink:0;
+}
+.ec-section__title{
+  font-size:12.5px;font-weight:700;color:#0f172a;
+  letter-spacing:.01em;
+}
+.ec-section__body{padding:14px}
+
+.ec-section--note{border-color:#fde68a;background:#fffbeb}
+.ec-section--note .ec-section__head{background:#fef9c3;border-color:#fde68a}
+.ec-section--note .ec-section__icon{background:#fde68a;color:#92400e}
+
+.ec-section--action{border-color:#bae6fd}
+.ec-section--action .ec-section__head{background:#f0f9ff;border-color:#bae6fd}
+.ec-section--action .ec-section__icon{background:#bae6fd;color:#075985}
+
+.ec-section--signed.is-ok{border-color:#86efac}
+.ec-section--signed.is-ok .ec-section__head{background:#f0fdf4;border-color:#86efac}
+.ec-section--signed.is-ok .ec-section__icon{background:#bbf7d0;color:#166534}
+
+.ec-section--warn{border-color:#fde68a}
+.ec-section--warn .ec-section__head{background:#fef9c3;border-color:#fde68a}
+.ec-section--warn .ec-section__icon{background:#fde68a;color:#92400e}
+
+/* Fields */
+.ec-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;
+}
+.ec-field{min-width:0}
+.ec-field--full{grid-column:1/-1}
+.ec-field__label{
+  font-size:10.5px;color:#64748b;
+  text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:2px;
+}
+.ec-field__value{font-size:13px;color:#0f172a;word-break:break-word}
+.ec-field__value--strong{font-weight:600}
+
+/* Chips */
+.ec-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;
+  line-height:1;
+}
+.ec-chip--ok{background:#dcfce7;color:#166534}
+.ec-chip--muted{background:#f1f5f9;color:#64748b}
+
+/* Buttons (modal-scoped) */
+.ec-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:600;
+  border:1px solid transparent;cursor:pointer;transition:all .15s;
+  text-decoration:none;line-height:1;
+}
+.ec-btn--sm{padding:6px 10px;font-size:11.5px;border-radius:7px}
+.ec-btn--info{background:#dbeafe;color:#1d4ed8}
+.ec-btn--info:hover{background:#bfdbfe}
+.ec-btn--success{background:#dcfce7;color:#166534}
+.ec-btn--success:hover{background:#bbf7d0}
+.ec-btn--danger{background:#fee2e2;color:#991b1b}
+.ec-btn--danger:hover{background:#fecaca}
+.ec-btn--outline{background:#fff;color:#334155;border-color:#cbd5e1}
+.ec-btn--outline:hover{background:#f8fafc;border-color:#94a3b8}
+.ec-btn--danger-outline{background:#fff1f2;color:#e11d48;border-color:#fecdd3}
+.ec-btn--danger-outline:hover{background:#ffe4e6}
+
+@media (max-width: 600px){
+  .ec-modal{padding:10px}
+  .ec-modal__dialog{border-radius:12px;max-height:calc(100vh - 20px)}
+  .ec-grid{grid-template-columns:1fr}
+  .ec-modal__title-main{font-size:14px}
 }

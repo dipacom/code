@@ -418,11 +418,36 @@ $jenis_label = [
   </div>
 </div>
 
-<!-- ── Detail + Aksi Drawer ─────────────────────────────────── -->
-<div id="detail-overlay" onclick="closeDetail()"></div>
-<div id="detail-drawer" style="width:min(520px,100vw)">
-  <div id="detail-content" style="padding:24px"></div>
+<!-- ── Detail + Aksi Modal (Modern) ─────────────────────────── -->
+<div id="ec-modal" class="ec-modal" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="ec-modal__overlay" onclick="closeDetail()"></div>
+  <div class="ec-modal__dialog" role="document">
+    <div class="ec-modal__header">
+      <div class="ec-modal__title">
+        <span class="ec-modal__title-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        </span>
+        <div>
+          <div class="ec-modal__title-main">Tinjau Permohonan Ethical Clearance</div>
+          <div class="ec-modal__title-sub">Detail lengkap pengajuan dan aksi persetujuan</div>
+        </div>
+      </div>
+      <button type="button" class="ec-modal__close" onclick="closeDetail()" aria-label="Tutup">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="ec-modal__body" id="detail-content"></div>
+    <div class="ec-modal__footer">
+      <button type="button" class="btn btn-outline" onclick="closeDetail()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Tutup
+      </button>
+    </div>
+  </div>
 </div>
+<!-- legacy placeholders untuk script lama (tidak dipakai tampilan baru) -->
+<div id="detail-overlay" style="display:none" onclick="closeDetail()"></div>
+<div id="detail-drawer" style="display:none"></div>
 
 <!-- Pre-rendered detail cards -->
 <?php foreach ($list as $ec):
@@ -436,69 +461,108 @@ $jenis_label = [
   };
 ?>
 <div id="det-<?= $ec['id'] ?>" style="display:none">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
-    <div>
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px">Ethical Clearance #<?= $ec['id'] ?></div>
-      <span class="badge <?= $badge ?>" style="font-size:12px"><?= $label_status ?></span>
+  <div class="ec-topbar">
+    <div class="ec-topbar__meta">
+      <div class="ec-topbar__idlabel">Ethical Clearance #<?= $ec['id'] ?></div>
+      <div class="ec-topbar__judul"><?= htmlspecialchars(mb_strimwidth($ec['judul_penelitian'], 0, 90, '…')) ?></div>
     </div>
-    <button onclick="closeDetail()" style="background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px">
-      <?= ic('x','style="width:20px;height:20px"') ?>
-    </button>
+    <span class="badge <?= $badge ?>" style="font-size:12px"><?= $label_status ?></span>
   </div>
 
-  <!-- Identitas -->
-  <div style="background:#f8fafc;border-radius:10px;padding:14px 16px;margin-bottom:16px">
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:10px">Identitas Pemohon</div>
-    <div class="det-grid">
-      <div><div style="font-size:11px;color:var(--text-muted)">Nama</div><div style="font-size:13px;font-weight:600"><?= htmlspecialchars($ec['nama_lengkap']) ?></div></div>
-      <div><div style="font-size:11px;color:var(--text-muted)">Identitas</div><div style="font-size:13px;font-weight:600"><?= htmlspecialchars($id_user_label) ?></div></div>
-      <div><div style="font-size:11px;color:var(--text-muted)">Program Studi</div><div style="font-size:13px"><?= htmlspecialchars($ec['program_studi'] ?? '—') ?></div></div>
-      <div><div style="font-size:11px;color:var(--text-muted)">Fakultas</div><div style="font-size:13px"><?= htmlspecialchars($ec['fakultas'] ?? '—') ?></div></div>
-      <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--text-muted)">Email</div><div style="font-size:13px"><?= htmlspecialchars($ec['email'] ?? '—') ?></div></div>
+  <!-- Section: Identitas Pemohon -->
+  <section class="ec-section">
+    <div class="ec-section__head">
+      <span class="ec-section__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </span>
+      <span class="ec-section__title">Identitas Pemohon</span>
     </div>
-  </div>
+    <div class="ec-section__body">
+      <div class="ec-grid">
+        <div class="ec-field"><div class="ec-field__label">Nama</div><div class="ec-field__value ec-field__value--strong"><?= htmlspecialchars($ec['nama_lengkap']) ?></div></div>
+        <div class="ec-field"><div class="ec-field__label">Identitas</div><div class="ec-field__value ec-field__value--strong"><?= htmlspecialchars($id_user_label) ?></div></div>
+        <div class="ec-field"><div class="ec-field__label">Program Studi</div><div class="ec-field__value"><?= htmlspecialchars($ec['program_studi'] ?? '—') ?></div></div>
+        <div class="ec-field"><div class="ec-field__label">Fakultas</div><div class="ec-field__value"><?= htmlspecialchars($ec['fakultas'] ?? '—') ?></div></div>
+        <div class="ec-field ec-field--full"><div class="ec-field__label">Email</div><div class="ec-field__value"><?= htmlspecialchars($ec['email'] ?? '—') ?></div></div>
+      </div>
+    </div>
+  </section>
 
-  <!-- Data Penelitian -->
-  <div style="background:#f8fafc;border-radius:10px;padding:14px 16px;margin-bottom:16px">
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:10px">Data Penelitian</div>
-    <div style="font-size:11px;color:var(--text-muted)">Judul</div>
-    <div style="font-size:13px;font-weight:600;line-height:1.5;margin-bottom:10px"><?= htmlspecialchars($ec['judul_penelitian']) ?></div>
-    <div class="det-grid">
-      <div><div style="font-size:11px;color:var(--text-muted)">Ketua Peneliti (PI)</div><div style="font-size:13px;font-weight:600"><?= htmlspecialchars($ec['ketua_peneliti'] ?? '—') ?></div></div>
-      <div><div style="font-size:11px;color:var(--text-muted)">Jurnal Target</div><div style="font-size:13px"><?= htmlspecialchars($ec['nama_jurnal'] ?? '—') ?></div></div>
-      <div><div style="font-size:11px;color:var(--text-muted)">Subjek Manusia</div><div style="font-size:13px">
-        <?php if ($ec['melibatkan_manusia']): ?>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px"><polyline points="20 6 9 17 4 12"/></svg><span style="color:#16a34a">Ya</span>
-        <?php else: ?>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px"><line x1="5" y1="12" x2="19" y2="12"/></svg><span style="color:#94a3b8">Tidak</span>
-        <?php endif; ?>
-      </div></div>
-      <div><div style="font-size:11px;color:var(--text-muted)">Hewan Percobaan</div><div style="font-size:13px">
-        <?php if ($ec['melibatkan_hewan']): ?>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px"><polyline points="20 6 9 17 4 12"/></svg><span style="color:#16a34a">Ya</span>
-        <?php else: ?>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px"><line x1="5" y1="12" x2="19" y2="12"/></svg><span style="color:#94a3b8">Tidak</span>
-        <?php endif; ?>
-      </div></div>
-      <?php if ($ec['anggota_tim']): ?>
-      <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--text-muted)">Anggota Tim</div><div style="font-size:13px"><?= nl2br(htmlspecialchars($ec['anggota_tim'])) ?></div></div>
-      <?php endif; ?>
-      <?php if ($ec['deskripsi']): ?>
-      <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--text-muted)">Deskripsi</div><div style="font-size:13px;line-height:1.6"><?= nl2br(htmlspecialchars($ec['deskripsi'])) ?></div></div>
-      <?php endif; ?>
+  <!-- Section: Data Penelitian -->
+  <section class="ec-section">
+    <div class="ec-section__head">
+      <span class="ec-section__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      </span>
+      <span class="ec-section__title">Data Penelitian</span>
     </div>
-  </div>
+    <div class="ec-section__body">
+      <div class="ec-field ec-field--full">
+        <div class="ec-field__label">Judul</div>
+        <div class="ec-field__value ec-field__value--strong" style="line-height:1.55"><?= htmlspecialchars($ec['judul_penelitian']) ?></div>
+      </div>
+      <div class="ec-grid" style="margin-top:10px">
+        <div class="ec-field"><div class="ec-field__label">Ketua Peneliti (PI)</div><div class="ec-field__value ec-field__value--strong"><?= htmlspecialchars($ec['ketua_peneliti'] ?? $ec['nama_ketua'] ?? '—') ?></div></div>
+        <div class="ec-field"><div class="ec-field__label">Jurnal Target</div><div class="ec-field__value"><?= htmlspecialchars($ec['nama_jurnal'] ?? '—') ?></div></div>
+        <div class="ec-field">
+          <div class="ec-field__label">Subjek Manusia</div>
+          <div class="ec-field__value">
+            <?php if (($ec['melibatkan_manusia'] ?? $ec['melibatkan_subjek_manusia'] ?? 0)): ?>
+              <span class="ec-chip ec-chip--ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Ya</span>
+            <?php else: ?>
+              <span class="ec-chip ec-chip--muted"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg> Tidak</span>
+            <?php endif; ?>
+          </div>
+        </div>
+        <div class="ec-field">
+          <div class="ec-field__label">Hewan Percobaan</div>
+          <div class="ec-field__value">
+            <?php if ($ec['melibatkan_hewan'] ?? 0): ?>
+              <span class="ec-chip ec-chip--ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Ya</span>
+            <?php else: ?>
+              <span class="ec-chip ec-chip--muted"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg> Tidak</span>
+            <?php endif; ?>
+          </div>
+        </div>
+        <?php if (!empty($ec['lokasi_penelitian'])): ?>
+        <div class="ec-field ec-field--full"><div class="ec-field__label">Lokasi Penelitian</div><div class="ec-field__value"><?= htmlspecialchars($ec['lokasi_penelitian']) ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($ec['tgl_mulai']) || !empty($ec['tgl_selesai'])): ?>
+        <div class="ec-field"><div class="ec-field__label">Tgl Mulai</div><div class="ec-field__value"><?= !empty($ec['tgl_mulai']) ? date('d/m/Y', strtotime($ec['tgl_mulai'])) : '—' ?></div></div>
+        <div class="ec-field"><div class="ec-field__label">Tgl Selesai</div><div class="ec-field__value"><?= !empty($ec['tgl_selesai']) ? date('d/m/Y', strtotime($ec['tgl_selesai'])) : '—' ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($ec['anggota_tim'])): ?>
+        <div class="ec-field ec-field--full"><div class="ec-field__label">Anggota Tim</div><div class="ec-field__value" style="line-height:1.55"><?= nl2br(htmlspecialchars($ec['anggota_tim'])) ?></div></div>
+        <?php endif; ?>
+        <?php if (($ec['deskripsi'] ?? $ec['abstrak'] ?? null)): ?>
+        <div class="ec-field ec-field--full"><div class="ec-field__label">Deskripsi / Abstrak</div><div class="ec-field__value" style="line-height:1.6"><?= nl2br(htmlspecialchars($ec['deskripsi'] ?? $ec['abstrak'])) ?></div></div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </section>
 
   <?php if ($ec['catatan_admin']): ?>
-  <div style="background:#fef9c3;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px">
-    <strong>Catatan sebelumnya:</strong> <?= htmlspecialchars($ec['catatan_admin']) ?>
-  </div>
+  <section class="ec-section ec-section--note">
+    <div class="ec-section__head">
+      <span class="ec-section__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </span>
+      <span class="ec-section__title">Catatan Sebelumnya</span>
+    </div>
+    <div class="ec-section__body" style="font-size:13px;line-height:1.55"><?= nl2br(htmlspecialchars($ec['catatan_admin'])) ?></div>
+  </section>
   <?php endif; ?>
 
-  <!-- Form Aksi -->
-  <form method="POST" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:16px">
+  <!-- Section: Update Status -->
+  <section class="ec-section ec-section--action">
+    <div class="ec-section__head">
+      <span class="ec-section__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </span>
+      <span class="ec-section__title">Update Status</span>
+    </div>
+  <form method="POST" class="ec-section__body" style="padding-top:4px">
     <input type="hidden" name="id" value="<?= $ec['id'] ?>">
-    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0369a1;margin-bottom:12px">Update Status</div>
     <div class="form-group" style="margin-bottom:12px">
       <label class="form-label" style="font-size:12px">Nomor Surat (jika disetujui)</label>
       <?php
@@ -516,87 +580,99 @@ $jenis_label = [
                 placeholder="Catatan untuk pemohon (opsional)..."><?= htmlspecialchars($ec['catatan_admin'] ?? '') ?></textarea>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button type="submit" name="aksi" value="diproses"
-              class="btn btn-sm" style="background:#dbeafe;color:#1d4ed8;border:none;font-weight:600">
-        ⏳ Tandai Diproses
+      <button type="submit" name="aksi" value="diproses" class="ec-btn ec-btn--info">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Tandai Diproses
       </button>
-      <button type="submit" name="aksi" value="disetujui"
-              class="btn btn-sm" style="background:#dcfce7;color:#166534;border:none;font-weight:600">
-        ✅ Setujui
+      <button type="submit" name="aksi" value="disetujui" class="ec-btn ec-btn--success">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Setujui
       </button>
-      <button type="submit" name="aksi" value="ditolak"
-              class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:none;font-weight:600"
-              onclick="return confirm('Tolak permohonan ini?')">
-        ✕ Tolak
+      <button type="submit" name="aksi" value="ditolak" class="ec-btn ec-btn--danger" onclick="return confirm('Tolak permohonan ini?')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Tolak
       </button>
     </div>
   </form>
+  </section>
 
-  <?php if ($ec['file_path']): ?>
-  <div style="margin-top:10px">
-    <a href="<?= BASE_URL ?>/<?= htmlspecialchars($ec['file_path']) ?>" target="_blank" class="btn btn-outline" style="width:100%;justify-content:center">
-      <?= ic('download','style="width:14px;height:14px"') ?> Unduh Draft / Laporan Penelitian
-    </a>
-  </div>
-  <?php endif; ?>
-
-  <?php if ($ec['file_surat_permohonan'] || $ec['file_surat_pernyataan'] || $ec['file_persetujuan_subjek'] || $ec['file_proposal'] || $ec['file_surat_izin']): ?>
-  <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
-    <?php if ($ec['file_surat_permohonan']): ?>
-      <a href="<?= BASE_URL ?>/<?= htmlspecialchars($ec['file_surat_permohonan']) ?>" target="_blank"
-         class="btn btn-outline btn-sm" style="font-size:11px">
-        <?= ic('doc','style="width:12px;height:12px"') ?> Surat Permohonan
+  <?php
+    $file_utama = $ec['file_path'] ?? $ec['file_laporan'] ?? $ec['file_proposal'] ?? null;
+    $has_lampiran = $file_utama
+      || !empty($ec['file_surat_permohonan'])
+      || !empty($ec['file_surat_pernyataan'])
+      || !empty($ec['file_persetujuan_subjek'])
+      || !empty($ec['file_proposal'])
+      || !empty($ec['file_surat_izin']);
+  ?>
+  <?php if ($has_lampiran): ?>
+  <section class="ec-section">
+    <div class="ec-section__head">
+      <span class="ec-section__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      </span>
+      <span class="ec-section__title">Lampiran Dokumen</span>
+    </div>
+    <div class="ec-section__body">
+      <?php if ($file_utama): ?>
+      <a href="<?= BASE_URL ?>/<?= htmlspecialchars($file_utama) ?>" target="_blank" class="ec-btn ec-btn--outline" style="width:100%;justify-content:center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Unduh Dokumen Utama
       </a>
-    <?php endif; ?>
-    <?php if ($ec['file_surat_pernyataan']): ?>
-      <a href="<?= BASE_URL ?>/<?= htmlspecialchars($ec['file_surat_pernyataan']) ?>" target="_blank"
-         class="btn btn-outline btn-sm" style="font-size:11px">
-        <?= ic('doc','style="width:12px;height:12px"') ?> Surat Pernyataan
-      </a>
-    <?php endif; ?>
-    <?php if ($ec['file_persetujuan_subjek']): ?>
-      <a href="<?= BASE_URL ?>/<?= htmlspecialchars($ec['file_persetujuan_subjek']) ?>" target="_blank"
-         class="btn btn-outline btn-sm" style="font-size:11px">
-        <?= ic('doc','style="width:12px;height:12px"') ?> Informed Consent
-      </a>
-    <?php endif; ?>
-    <?php if ($ec['file_proposal'] ?? null): ?>
-      <a href="<?= BASE_URL ?>/<?= htmlspecialchars($ec['file_proposal']) ?>" target="_blank"
-         class="btn btn-outline btn-sm" style="font-size:11px">
-        <?= ic('doc','style="width:12px;height:12px"') ?> Proposal
-      </a>
-    <?php endif; ?>
-    <?php if ($ec['file_surat_izin'] ?? null): ?>
-      <a href="<?= BASE_URL ?>/<?= htmlspecialchars($ec['file_surat_izin']) ?>" target="_blank"
-         class="btn btn-outline btn-sm" style="font-size:11px">
-        <?= ic('doc','style="width:12px;height:12px"') ?> Surat Izin
-      </a>
-    <?php endif; ?>
-  </div>
-  <?php endif; ?>
-
-  <!-- ══ SURAT BERTANDATANGAN (UPLOAD ADMIN) ══ -->
-  <div style="margin-top:14px;padding:14px 16px;background:<?= !empty($ec['file_surat_signed']) ? '#f0fdf4' : '#fafafa' ?>;border:1.5px solid <?= !empty($ec['file_surat_signed']) ? '#86efac' : '#e2e8f0' ?>;border-radius:10px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:7px">
-        <div style="background:<?= !empty($ec['file_surat_signed']) ? '#16a34a' : '#64748b' ?>;border-radius:6px;padding:5px;display:flex;align-items:center;justify-content:center">
-          <?= ic('upload','style="width:13px;height:13px;color:#fff"') ?>
-        </div>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:<?= !empty($ec['file_surat_signed']) ? '#166534' : '#334155' ?>">
-            Surat Bertandatangan & Berstempel
-          </div>
-          <div style="font-size:10px;color:var(--text-muted);margin-top:1px">
-            <?= !empty($ec['file_surat_signed']) ? 'Sudah diunggah — pemohon dapat mengunduh' : 'Belum diunggah — pemohon hanya mendapat surat digital otomatis' ?>
-          </div>
-        </div>
+      <?php endif; ?>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+        <?php if (!empty($ec['file_surat_permohonan'])): ?>
+          <a href="<?= BASE_URL ?>/<?= htmlspecialchars($ec['file_surat_permohonan']) ?>" target="_blank" class="ec-btn ec-btn--outline ec-btn--sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Surat Permohonan
+          </a>
+        <?php endif; ?>
+        <?php if (!empty($ec['file_surat_pernyataan'])): ?>
+          <a href="<?= BASE_URL ?>/<?= htmlspecialchars($ec['file_surat_pernyataan']) ?>" target="_blank" class="ec-btn ec-btn--outline ec-btn--sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Surat Pernyataan
+          </a>
+        <?php endif; ?>
+        <?php if (!empty($ec['file_persetujuan_subjek'])): ?>
+          <a href="<?= BASE_URL ?>/<?= htmlspecialchars($ec['file_persetujuan_subjek']) ?>" target="_blank" class="ec-btn ec-btn--outline ec-btn--sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Informed Consent
+          </a>
+        <?php endif; ?>
+        <?php if (!empty($ec['file_proposal'])): ?>
+          <a href="<?= BASE_URL ?>/<?= htmlspecialchars($ec['file_proposal']) ?>" target="_blank" class="ec-btn ec-btn--outline ec-btn--sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Proposal
+          </a>
+        <?php endif; ?>
+        <?php if (!empty($ec['file_surat_izin'])): ?>
+          <a href="<?= BASE_URL ?>/<?= htmlspecialchars($ec['file_surat_izin']) ?>" target="_blank" class="ec-btn ec-btn--outline ec-btn--sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Surat Izin
+          </a>
+        <?php endif; ?>
       </div>
+    </div>
+  </section>
+  <?php endif; ?>
+
+  <!-- Section: Surat Bertandatangan (Upload Admin) -->
+  <section class="ec-section ec-section--signed <?= !empty($ec['file_surat_signed']) ? 'is-ok' : '' ?>">
+    <div class="ec-section__head">
+      <span class="ec-section__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </span>
+      <span class="ec-section__title">Surat Bertandatangan & Berstempel</span>
       <?php if (!empty($ec['file_surat_signed'])): ?>
-        <span style="font-size:10px;font-weight:700;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;white-space:nowrap">✓ Ada</span>
+        <span class="ec-chip ec-chip--ok" style="margin-left:auto">Sudah diunggah</span>
       <?php else: ?>
-        <span style="font-size:10px;font-weight:700;background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:10px;white-space:nowrap">Belum</span>
+        <span class="ec-chip ec-chip--muted" style="margin-left:auto">Belum diunggah</span>
       <?php endif; ?>
     </div>
+    <div class="ec-section__body">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">
+        <?= !empty($ec['file_surat_signed']) ? 'Sudah diunggah — pemohon dapat mengunduh versi bertandatangan.' : 'Belum diunggah — pemohon hanya mendapat surat digital otomatis.' ?>
+      </div>
 
     <?php if (!empty($ec['file_surat_signed'])): ?>
     <!-- File sudah ada -->
@@ -642,35 +718,49 @@ $jenis_label = [
     </form>
 
     <?php if (!empty($ec['file_surat_signed'])): ?>
-    <!-- Hapus file -->
     <form method="POST" style="margin-top:8px"
           onsubmit="return confirm('Hapus surat bertandatangan? Pemohon tidak akan bisa mengunduh versi bertandatangan.')">
       <input type="hidden" name="action" value="hapus_surat_signed">
       <input type="hidden" name="ec_id" value="<?= $ec['id'] ?>">
       <input type="hidden" name="filter_back" value="<?= htmlspecialchars($filter_status) ?>">
-      <button type="submit" class="btn btn-sm" style="background:#fff1f2;color:#e11d48;border:1px solid #fecdd3;font-size:11px">
-        <?= ic('trash','style="width:11px;height:11px"') ?> Hapus Surat Bertandatangan
+      <button type="submit" class="ec-btn ec-btn--danger-outline ec-btn--sm">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        Hapus Surat Bertandatangan
       </button>
     </form>
     <?php endif; ?>
-  </div>
-
-  <!-- Cetak surat digital otomatis (fallback) -->
-  <?php if ($ec['status'] === 'disetujui' && $ec['nomor_surat']): ?>
-  <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0">
-    <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">
-      Surat Digital (Auto-Generate)
     </div>
-    <a href="<?= BASE_URL ?>/modules/ethical_clearance/surat.php?id=<?= $ec['id'] ?>" target="_blank"
-       class="btn btn-outline btn-sm" style="width:100%;justify-content:center;gap:6px;font-size:12px">
-      <?= ic('printer','style="width:13px;height:13px"') ?>
-      Preview / Cetak Letter of Ethical Approval
-    </a>
-  </div>
+  </section>
+
+  <!-- Section: Surat Digital (Auto-Generate) -->
+  <?php if ($ec['status'] === 'disetujui' && $ec['nomor_surat']): ?>
+  <section class="ec-section">
+    <div class="ec-section__head">
+      <span class="ec-section__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      </span>
+      <span class="ec-section__title">Surat Digital (Auto-Generate)</span>
+    </div>
+    <div class="ec-section__body">
+      <a href="<?= BASE_URL ?>/modules/ethical_clearance/surat.php?id=<?= $ec['id'] ?>" target="_blank"
+         class="ec-btn ec-btn--outline" style="width:100%;justify-content:center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Preview / Cetak Letter of Ethical Approval
+      </a>
+    </div>
+  </section>
   <?php elseif ($ec['status'] === 'disetujui' && !$ec['nomor_surat']): ?>
-  <div style="margin-top:10px;padding:10px 12px;background:#fef9c3;border-radius:8px;font-size:12px;color:#92400e">
-    ⚠️ Isi <strong>Nomor Surat</strong> pada form status di atas lalu simpan untuk mengaktifkan cetak surat.
-  </div>
+  <section class="ec-section ec-section--warn">
+    <div class="ec-section__head">
+      <span class="ec-section__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </span>
+      <span class="ec-section__title">Perhatian</span>
+    </div>
+    <div class="ec-section__body" style="font-size:12px">
+      Isi <strong>Nomor Surat</strong> pada form <em>Update Status</em> di atas lalu simpan untuk mengaktifkan cetak surat.
+    </div>
+  </section>
   <?php endif; ?>
 </div>
 <?php endforeach; ?>
@@ -679,14 +769,24 @@ $jenis_label = [
 function openDetail(id) {
   const src = document.getElementById('det-' + id);
   if (!src) return;
-  document.getElementById('detail-content').innerHTML = src.innerHTML;
-  document.getElementById('detail-overlay').classList.add('open');
-  document.getElementById('detail-drawer').classList.add('open');
+  const modal   = document.getElementById('ec-modal');
+  const content = document.getElementById('detail-content');
+  content.innerHTML = src.innerHTML;
+  modal.classList.add('is-open');
+  modal.setAttribute('aria-hidden','false');
+  document.body.style.overflow = 'hidden';
+  content.scrollTop = 0;
 }
 function closeDetail() {
-  document.getElementById('detail-overlay').classList.remove('open');
-  document.getElementById('detail-drawer').classList.remove('open');
+  const modal = document.getElementById('ec-modal');
+  if (!modal) return;
+  modal.classList.remove('is-open');
+  modal.setAttribute('aria-hidden','true');
+  document.body.style.overflow = '';
 }
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeDetail();
+});
 function toggleLang() {
   const cur = document.cookie.match(/lang=([^;]+)/)?.[1] || 'id';
   document.cookie = 'lang='+(cur==='id'?'en':'id')+';path=/;max-age=31536000';

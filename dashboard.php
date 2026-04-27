@@ -85,6 +85,11 @@ if ($is_dosen) {
 // ── Statistik Penelitian (hanya dosen) ──
 $total_penelitian = $disetujui_penelitian = $menunggu_penelitian = $ditolak_penelitian = 0;
 $penelitian_list  = [];
+
+// ── Statistik Pengabdian (hanya dosen) ──
+$total_pengabdian = $disetujui_pengabdian = $menunggu_pengabdian = $ditolak_pengabdian = 0;
+$pengabdian_list  = [];
+
 $pengingat_list   = []; // Pengingat: kontrak siap TTD, deadline laporan dekat, dll
 if ($is_dosen) {
     try {
@@ -117,6 +122,37 @@ if ($is_dosen) {
         ");
         $stmt->execute([$uid]);
         $penelitian_list = $stmt->fetchAll();
+
+        // Statistik & riwayat pengabdian dosen
+        $stmt = $pdo->prepare("SELECT status, COUNT(*) c FROM usulan_pengabdian WHERE user_id=? AND deleted_at IS NULL GROUP BY status");
+        $stmt->execute([$uid]);
+        $pgb_stats = [];
+        foreach ($stmt->fetchAll() as $r) $pgb_stats[$r['status']] = (int)$r['c'];
+        $total_pengabdian    = array_sum($pgb_stats);
+        $disetujui_pengabdian = ($pgb_stats['disetujui'] ?? 0)
+                              + ($pgb_stats['penandatanganan_kontrak'] ?? 0)
+                              + ($pgb_stats['kontrak_aktif'] ?? 0)
+                              + ($pgb_stats['laporan_diterima'] ?? 0)
+                              + ($pgb_stats['selesai'] ?? 0);
+        $menunggu_pengabdian  = ($pgb_stats['draft'] ?? 0)
+                              + ($pgb_stats['diajukan'] ?? 0)
+                              + ($pgb_stats['seleksi_admin'] ?? 0)
+                              + ($pgb_stats['lolos_admin'] ?? 0)
+                              + ($pgb_stats['seleksi_substansi'] ?? 0);
+        $ditolak_pengabdian   = ($pgb_stats['ditolak'] ?? 0)
+                              + ($pgb_stats['gagal_admin'] ?? 0)
+                              + ($pgb_stats['perbaikan_admin'] ?? 0)
+                              + ($pgb_stats['perbaikan_substantif'] ?? 0)
+                              + ($pgb_stats['revisi_minor'] ?? 0)
+                              + ($pgb_stats['revisi_mayor'] ?? 0);
+
+        $stmt = $pdo->prepare("
+            SELECT id, skema, judul, status, created_at, updated_at
+            FROM usulan_pengabdian WHERE user_id=? AND deleted_at IS NULL
+            ORDER BY created_at DESC LIMIT 5
+        ");
+        $stmt->execute([$uid]);
+        $pengabdian_list = $stmt->fetchAll();
 
         // ── Pengingat aktif: kontrak siap TTD + deadline laporan (UNION penelitian + pengabdian) ──
         $stmt = $pdo->prepare("
@@ -206,6 +242,65 @@ $nama_institusi = getSetting($pdo, 'nama_institusi');
 .catatan-box{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 12px;font-size:13px;color:#9a3412}
 .nomor-box{background:var(--primary-xlight);border:1px solid var(--primary-light);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--primary);font-weight:600}
 @media(max-width:480px){#detail-drawer{width:100%}.detail-grid{grid-template-columns:1fr}}
+
+/* ── Redesign khusus dashboard dosen (tetap tema existing) ── */
+.dosen-hero{
+  margin-top:14px;margin-bottom:16px;border:1px solid var(--border);border-radius:16px;
+  background:linear-gradient(135deg,#0f172a 0%, #1e3a8a 55%, #312e81 100%);
+  color:#fff;overflow:hidden;position:relative
+}
+.dosen-hero:before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 85% 20%, rgba(255,255,255,.14), transparent 40%)
+}
+.dosen-hero-inner{position:relative;z-index:1;padding:18px 20px}
+.dosen-hero-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.dosen-hero-title{font-size:18px;font-weight:800;line-height:1.25;margin-bottom:4px}
+.dosen-hero-sub{font-size:12px;opacity:.9;max-width:700px}
+.chip-priority{
+  display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;
+  padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.26);
+  background:rgba(255,255,255,.13)
+}
+.insight-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.insight-item{
+  background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.2);border-radius:12px;
+  padding:10px 12px
+}
+.insight-lbl{font-size:10px;opacity:.85;text-transform:uppercase;letter-spacing:.4px}
+.insight-val{font-size:22px;font-weight:800;line-height:1.1;margin-top:4px}
+.insight-sub{font-size:11px;opacity:.9;margin-top:2px}
+.status-compare{
+  margin-top:14px;margin-bottom:10px;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:14px;padding:12px 14px
+}
+.status-compare-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.status-compare-title{font-size:13px;font-weight:700;color:var(--text-primary)}
+.status-compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.status-col{border:1px solid var(--border);border-radius:11px;padding:10px}
+.status-col h4{margin:0 0 8px;font-size:12px;color:var(--text-primary)}
+.status-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0}
+.status-row b{font-weight:700}
+.section-caption{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.4px;text-transform:uppercase;margin:8px 0 10px}
+
+/* Rapikan stats dosen agar full-width seperti quick actions */
+.stats-grid.dosen-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stats-grid.dosen-stats .stat-card{min-height:126px;display:flex;align-items:center}
+.stats-grid.dosen-stats .stat-icon{width:74px;height:74px}
+.stats-grid.dosen-stats .stat-label{font-size:13px;font-weight:800;letter-spacing:.2px}
+.stats-grid.dosen-stats .stat-value{font-size:44px;line-height:1;font-weight:900;margin-top:2px}
+.stats-grid.dosen-stats .stat-card > div:last-child,
+.stats-grid.dosen-stats .stat-card > div[style*="flex:1"]{width:100%}
+
+@media(max-width:900px){
+  .insight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats-grid.dosen-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:680px){
+  .status-compare-grid{grid-template-columns:1fr}
+  .dosen-hero-title{font-size:16px}
+  .stats-grid.dosen-stats{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -250,8 +345,82 @@ $nama_institusi = getSetting($pdo, 'nama_institusi');
         <div class="wic"><?= ic($is_dosen ? 'user' : 'graduation', 'style="width:26px;height:26px"') ?></div>
       </div>
 
-      <!-- Statistik ringkasan -->
-      <div class="stats-grid" style="margin-bottom:6px">
+      <?php if ($is_dosen):
+        $total_usulan_dosen = $total_ec + $total_penelitian + $total_pengabdian;
+        $perlu_tindakan_dosen = $ditolak_penelitian + $ditolak_pengabdian + $ditolak_ec;
+        $aktif_proses_dosen = $menunggu_penelitian + $menunggu_pengabdian + $menunggu_ec;
+        $modul_aktif_dosen = 0;
+        if ($total_ec > 0) $modul_aktif_dosen++;
+        if ($total_penelitian > 0) $modul_aktif_dosen++;
+        if ($total_pengabdian > 0) $modul_aktif_dosen++;
+      ?>
+      <div class="dosen-hero" id="sec-dosen-overview">
+        <div class="dosen-hero-inner">
+          <div class="dosen-hero-top">
+            <div>
+              <div class="dosen-hero-title"><?= $lang==='id'?'Ringkasan Kinerja Dosen':'Lecturer Performance Overview' ?></div>
+              <div class="dosen-hero-sub">
+                <?= $lang==='id'
+                  ? 'Pantau progres ethical clearance, penelitian, dan pengabdian dalam satu tampilan terintegrasi.'
+                  : 'Track ethical clearance, research, and community service progress in one integrated view.' ?>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="chip-priority"><?= ic('alert') ?> <?= $lang==='id'?'Perlu Tindakan:':'Action Needed:' ?> <?= $perlu_tindakan_dosen ?></span>
+              <a href="#sec-pengingat" style="text-decoration:none" class="chip-priority"><?= ic('bell') ?> <?= $lang==='id'?'Lihat Pengingat':'View Reminders' ?></a>
+            </div>
+          </div>
+          <div class="insight-grid">
+            <div class="insight-item">
+              <div class="insight-lbl"><?= $lang==='id'?'Total Usulan':'Total Submissions' ?></div>
+              <div class="insight-val"><?= $total_usulan_dosen ?></div>
+              <div class="insight-sub"><?= $lang==='id'?'Semua modul dosen':'All lecturer modules' ?></div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-lbl"><?= $lang==='id'?'Sedang Diproses':'In Progress' ?></div>
+              <div class="insight-val"><?= $aktif_proses_dosen ?></div>
+              <div class="insight-sub"><?= $lang==='id'?'Menunggu hasil review':'Awaiting review results' ?></div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-lbl"><?= $lang==='id'?'Disetujui':'Approved' ?></div>
+              <div class="insight-val"><?= ($disetujui_ec + $disetujui_penelitian + $disetujui_pengabdian) ?></div>
+              <div class="insight-sub"><?= $lang==='id'?'Lolos tahapan seleksi':'Passed selection stages' ?></div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-lbl"><?= $lang==='id'?'Modul Aktif':'Active Modules' ?></div>
+              <div class="insight-val"><?= $modul_aktif_dosen ?>/3</div>
+              <div class="insight-sub">EC · Penelitian · Pengabdian</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-compare">
+        <div class="status-compare-head">
+          <div class="status-compare-title"><?= $lang==='id'?'Status Terpadu Proposal':'Integrated Proposal Status' ?></div>
+          <a href="#sec-penelitian" style="font-size:12px;color:var(--primary);font-weight:600;text-decoration:none"><?= $lang==='id'?'Lihat riwayat detail':'View detailed history' ?> →</a>
+        </div>
+        <div class="status-compare-grid">
+          <div class="status-col">
+            <h4><?= $lang==='id'?'Penelitian':'Research' ?></h4>
+            <div class="status-row"><span><?= $lang==='id'?'Disetujui':'Approved' ?></span><b style="color:#059669"><?= $disetujui_penelitian ?></b></div>
+            <div class="status-row"><span><?= $lang==='id'?'Diproses':'In Progress' ?></span><b style="color:#d97706"><?= $menunggu_penelitian ?></b></div>
+            <div class="status-row"><span><?= $lang==='id'?'Revisi/Tolak':'Revise/Reject' ?></span><b style="color:#dc2626"><?= $ditolak_penelitian ?></b></div>
+          </div>
+          <div class="status-col">
+            <h4><?= $lang==='id'?'Pengabdian':'Community Service' ?></h4>
+            <div class="status-row"><span><?= $lang==='id'?'Disetujui':'Approved' ?></span><b style="color:#059669"><?= $disetujui_pengabdian ?></b></div>
+            <div class="status-row"><span><?= $lang==='id'?'Diproses':'In Progress' ?></span><b style="color:#d97706"><?= $menunggu_pengabdian ?></b></div>
+            <div class="status-row"><span><?= $lang==='id'?'Revisi/Tolak':'Revise/Reject' ?></span><b style="color:#dc2626"><?= $ditolak_pengabdian ?></b></div>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
+
+      <?php if (!$is_dosen): ?>
+      <div class="section-caption"><?= $lang==='id'?'Ringkasan Modul':'Module Summary' ?></div>
+      <?php endif; ?>
+      <div class="stats-grid <?= $is_dosen ? 'dosen-stats' : '' ?>" style="margin-bottom:6px">
 
         <?php if (!$is_dosen): ?>
         <!-- Mahasiswa: plagiasi -->
@@ -331,6 +500,22 @@ $nama_institusi = getSetting($pdo, 'nama_institusi');
             </div>
           </div>
         </a>
+
+        <!-- Dosen: usulan pengabdian -->
+        <a href="#sec-pengabdian" class="stat-card" style="text-decoration:none;cursor:pointer">
+          <div class="stat-icon" style="background:#eef2ff;color:#4f46e5"><?= ic('users') ?></div>
+          <div style="flex:1">
+            <div class="stat-label"><?= $lang==='id'?'Usulan Pengabdian':'Community Service Proposals' ?></div>
+            <div class="stat-value"><?= $total_pengabdian ?></div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
+              <?php $pg=[];
+                if($disetujui_pengabdian) $pg[]='<span style="color:#059669">'.$disetujui_pengabdian.' disetujui</span>';
+                if($menunggu_pengabdian)  $pg[]='<span style="color:#d97706">'.$menunggu_pengabdian.' diproses</span>';
+                if($ditolak_pengabdian)   $pg[]='<span style="color:#dc2626">'.$ditolak_pengabdian.' revisi/tolak</span>';
+                echo implode(' · ', $pg) ?: '<span style="color:#94a3b8">—</span>'; ?>
+            </div>
+          </div>
+        </a>
         <?php else: ?>
         <!-- Mahasiswa: surat diterbitkan -->
         <a href="#sec-publikasi" class="stat-card" style="text-decoration:none;cursor:pointer">
@@ -345,8 +530,8 @@ $nama_institusi = getSetting($pdo, 'nama_institusi');
 
       </div>
 
-      <!-- Quick Actions -->
-      <div class="qa-grid" style="margin-bottom:24px;margin-top:20px">
+      <div class="section-caption"><?= $lang==='id'?'Aksi Cepat':'Quick Actions' ?></div>
+      <div class="qa-grid" style="margin-bottom:24px;margin-top:14px;<?= $is_dosen ? 'grid-template-columns:repeat(3,minmax(0,1fr));' : '' ?>">
         <?php if (!$is_dosen): ?>
         <a href="<?= BASE_URL ?>/modules/plagiasi/upload.php" class="qa-btn">
           <div class="qa-icon navy"><?= ic('search') ?></div>
@@ -373,6 +558,7 @@ $nama_institusi = getSetting($pdo, 'nama_institusi');
           <div>
             <div class="qa-title"><?= $lang==='id' ? 'Ethical Clearance' : 'Ethical Clearance' ?></div>
             <div class="qa-sub"><?= $lang==='id' ? 'Ajukan persetujuan etik penelitian' : 'Apply for research ethics approval' ?></div>
+            <div style="font-size:10px;margin-top:4px"><span style="background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:999px;font-weight:700"><?= $lang==='id'?'Prioritas':'Priority' ?></span></div>
           </div>
           <div class="qa-arr"><?= ic('check') ?></div>
         </a>
@@ -383,8 +569,20 @@ $nama_institusi = getSetting($pdo, 'nama_institusi');
           <div>
             <div class="qa-title"><?= $lang==='id' ? 'Usulan Penelitian' : 'Research Proposal' ?></div>
             <div class="qa-sub"><?= $lang==='id' ? 'Ajukan atau kelola proposal penelitian' : 'Submit or manage research proposals' ?></div>
+            <div style="font-size:10px;margin-top:4px"><span style="background:#ede9fe;color:#6d28d9;padding:2px 7px;border-radius:999px;font-weight:700"><?= $lang==='id'?'Prioritas':'Priority' ?></span></div>
           </div>
           <div class="qa-arr"><?= ic('doc') ?></div>
+        </a>
+        <?php endif; ?>
+        <?php if ($is_dosen): ?>
+        <a href="<?= BASE_URL ?>/modules/pengabdian/index.php" class="qa-btn">
+          <div class="qa-icon" style="background:#eef2ff;color:#4f46e5"><?= ic('users') ?></div>
+          <div>
+            <div class="qa-title"><?= $lang==='id' ? 'Usulan Pengabdian' : 'Community Service Proposal' ?></div>
+            <div class="qa-sub"><?= $lang==='id' ? 'Ajukan atau kelola proposal pengabdian' : 'Submit or manage community service proposals' ?></div>
+            <div style="font-size:10px;margin-top:4px"><span style="background:#e0e7ff;color:#3730a3;padding:2px 7px;border-radius:999px;font-weight:700"><?= $lang==='id'?'Rutin':'Routine' ?></span></div>
+          </div>
+          <div class="qa-arr"><?= ic('award') ?></div>
         </a>
         <?php endif; ?>
       </div>
@@ -986,6 +1184,105 @@ $nama_institusi = getSetting($pdo, 'nama_institusi');
         </div>
       </div>
       <?php endif; // end $is_dosen penelitian ?>
+
+      <!-- ── Riwayat Usulan Pengabdian (dosen only) ───────────── -->
+      <?php if ($is_dosen): ?>
+      <div class="card" style="margin-top:20px" id="sec-pengabdian">
+        <div class="card-header">
+          <span class="card-title">
+            <?= ic('users') ?> <?= $lang==='id' ? 'Riwayat Usulan Pengabdian' : 'Community Service Proposal History' ?>
+            <?php if ($total_pengabdian > count($pengabdian_list)): ?>
+              <span style="font-size:11px;font-weight:500;color:var(--text-muted);margin-left:6px">(<?= count($pengabdian_list) ?> dari <?= $total_pengabdian ?> total)</span>
+            <?php endif; ?>
+          </span>
+          <a href="<?= BASE_URL ?>/modules/pengabdian/index.php" class="btn btn-primary btn-sm">
+            + <?= $lang==='id' ? 'Ajukan Baru' : 'New Proposal' ?>
+          </a>
+        </div>
+        <div class="card-body" style="padding:0">
+          <?php if (empty($pengabdian_list)): ?>
+            <div style="padding:32px;text-align:center;color:#94a3b8">
+              <?= ic('inbox','style="width:32px;height:32px;margin:0 auto 10px;display:block;color:#cbd5e1"') ?>
+              <?= $lang==='id' ? 'Belum ada usulan pengabdian.' : 'No community service proposals yet.' ?>
+            </div>
+          <?php else: ?>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th><?= $lang==='id'?'Judul Pengabdian':'Community Service Title' ?></th>
+                  <th><?= $lang==='id'?'Skema':'Scheme' ?></th>
+                  <th><?= $lang==='id'?'Tanggal':'Date' ?></th>
+                  <th>Status</th>
+                  <th><?= $lang==='id'?'Aksi':'Action' ?></th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($pengabdian_list as $pg):
+                  $pgb_badge = match($pg['status']) {
+                    'disetujui','kontrak_aktif','laporan_diterima','selesai'  => 'badge-success',
+                    'ditolak','gagal_admin'                                    => 'badge-danger',
+                    'revisi_minor','revisi_mayor','direvisi',
+                    'perbaikan_admin','perbaikan_substantif'                   => 'badge-wait',
+                    'ditinjau','diajukan','seleksi_admin','lolos_admin',
+                    'seleksi_substansi','penandatanganan_kontrak'              => 'badge-process',
+                    default                                                    => 'badge-wait',
+                  };
+                  $pgb_label = match($pg['status']) {
+                    'disetujui'              => ($lang==='id'?'Disetujui':'Approved'),
+                    'penandatanganan_kontrak'=> ($lang==='id'?'Tanda Tangan Kontrak':'Contract Signing'),
+                    'kontrak_aktif'          => ($lang==='id'?'Kontrak Aktif':'Active'),
+                    'laporan_diterima'       => ($lang==='id'?'Laporan Diterima':'Report Accepted'),
+                    'selesai'                => ($lang==='id'?'Selesai':'Completed'),
+                    'ditolak','gagal_admin'  => ($lang==='id'?'Ditolak':'Rejected'),
+                    'revisi_minor'           => ($lang==='id'?'Revisi Minor':'Minor Revision'),
+                    'revisi_mayor'           => ($lang==='id'?'Revisi Mayor':'Major Revision'),
+                    'perbaikan_admin'        => ($lang==='id'?'Perbaikan Admin':'Admin Revision'),
+                    'perbaikan_substantif'   => ($lang==='id'?'Perbaikan Substantif':'Substantive Revision'),
+                    'seleksi_admin'          => ($lang==='id'?'Seleksi Admin':'Admin Review'),
+                    'lolos_admin'            => ($lang==='id'?'Lolos Admin':'Admin Passed'),
+                    'seleksi_substansi'      => ($lang==='id'?'Seleksi Substantif':'Substantive Review'),
+                    'ditinjau'               => ($lang==='id'?'Ditinjau':'In Review'),
+                    'diajukan'               => ($lang==='id'?'Diajukan':'Submitted'),
+                    default                  => ($lang==='id'?'Draft':'Draft'),
+                  };
+                  $skema_labels = [
+                    'pkm'    => 'PKM',
+                    'pdm'    => 'PDM',
+                    'pdupt'  => 'PDUPT',
+                    'phb'    => 'PHB',
+                    'ppp'    => 'PPP',
+                    'ptnbh'  => 'PTNBH',
+                  ];
+                  $skema_label = $skema_labels[$pg['skema']] ?? strtoupper($pg['skema']);
+                ?>
+                <tr>
+                  <td style="max-width:260px">
+                    <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="<?= htmlspecialchars($pg['judul']) ?>">
+                      <?= htmlspecialchars(mb_strimwidth($pg['judul'] ?? '(tanpa judul)', 0, 60, '…')) ?>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge badge-process" style="font-size:11px"><?= htmlspecialchars($skema_label) ?></span>
+                  </td>
+                  <td style="white-space:nowrap;font-size:12px;color:#64748b">
+                    <?= date('d/m/Y', strtotime($pg['created_at'])) ?>
+                  </td>
+                  <td><span class="badge <?= $pgb_badge ?>"><?= $pgb_label ?></span></td>
+                  <td style="white-space:nowrap">
+                    <a href="<?= BASE_URL ?>/modules/pengabdian/index.php" class="btn btn-outline btn-sm">
+                      <?= ic('eye') ?> <?= $lang==='id'?'Lihat':'View' ?>
+                    </a>
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+          <?php endif; ?>
+        </div>
+      </div>
+      <?php endif; // end $is_dosen pengabdian ?>
 
     </div><!-- end page-content -->
   </div><!-- end main-content -->

@@ -331,6 +331,22 @@ html { scroll-behavior: smooth; }
 .sk-stat-lbl { font-size:9.5px; color:var(--text-muted); }
 
 /* Checks row — similarity + AI */
+.sk-summary{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--border);background:var(--bg-field)
+}
+.sk-summary-item{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}
+.sk-summary-item + .sk-summary-item{border-left:1px solid var(--border)}
+.sk-summary-lbl{color:var(--text-muted);font-weight:600}
+.sk-summary-val{color:var(--text-primary);font-weight:800}
+.sk-detail{display:none}
+.sk-detail.open{display:block}
+.sk-toggle{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 12px;border:0;border-top:1px solid var(--border);background:#fff;cursor:pointer;
+  font-size:11.5px;font-weight:700;color:var(--primary)
+}
+.sk-toggle svg{transition:transform .2s}
+.sk-toggle.open svg{transform:rotate(180deg)}
 .sk-checks { display:grid; grid-template-columns:1fr 1fr; background:var(--bg-field); }
 .sk-check  {
   padding:10px 13px; display:flex; align-items:center; gap:9px;
@@ -657,6 +673,21 @@ html { scroll-behavior: smooth; }
               <div class="sk-stat-lbl"><?= $id?'Min. Jafung':'Min. Rank' ?></div>
             </div>
           </div>
+          <div class="sk-summary">
+            <div class="sk-summary-item">
+              <span class="sk-summary-lbl"><?= $id?'Anggaran':'Budget' ?></span>
+              <span class="sk-summary-val"><?= $fmt_short((int)$sk['anggaran_total']) ?></span>
+            </div>
+            <div class="sk-summary-item">
+              <span class="sk-summary-lbl"><?= $id?'Kuota':'Quota' ?></span>
+              <span class="sk-summary-val"><?= (int)$sk['kuota'] ?></span>
+            </div>
+          </div>
+          <button type="button" class="sk-toggle" onclick="toggleSkDetail(this, event)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <span><?= $id?'Lihat Detail Skema':'View Scheme Details' ?></span>
+          </button>
+          <div class="sk-detail">
           <!-- Checks: similarity · AI detection -->
           <div class="sk-checks">
             <div class="sk-check">
@@ -711,6 +742,7 @@ html { scroll-behavior: smooth; }
                 <span class="sk-member-unit"><?= $id?' org':' ppl' ?></span>
               </div>
             </div>
+          </div>
           </div>
           <!-- CTA -->
           <div class="sk-cta <?= $skemaOpen($sk)?'sk-cta-open':'sk-cta-closed' ?>">
@@ -857,9 +889,9 @@ html { scroll-behavior: smooth; }
               </button>
             </form>
             <?php endif; ?>
-            <?php if (in_array($p['status'], ['gagal_admin','revisi_minor','revisi_mayor'])): ?>
+            <?php if (in_array($p['status'], ['gagal_admin','revisi_minor','revisi_mayor','ditolak','direvisi'])): ?>
             <a href="<?= BASE_URL ?>/modules/pengabdian/revisi.php?pid=<?= $p['id'] ?>"
-               class="btn-revisi <?= $p['status']==='revisi_minor'?'minor':($p['status']==='revisi_mayor'?'mayor':'') ?>">
+               class="btn-revisi <?= in_array($p['status'], ['revisi_minor','direvisi']) ? 'minor' : (in_array($p['status'], ['revisi_mayor','ditolak']) ? 'mayor' : '') ?>">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="1 4 1 10 7 10"/>
                 <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
@@ -1271,6 +1303,19 @@ function confirmPermDelete(form) {
     : 'Delete permanently? This cannot be undone.');
 }
 
+function toggleSkDetail(btn, ev){
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+  const detail = btn.nextElementSibling;
+  if(!detail || !detail.classList.contains('sk-detail')) return;
+  const open = detail.classList.toggle('open');
+  btn.classList.toggle('open', open);
+  const sp = btn.querySelector('span');
+  if(sp){
+    const id = <?= json_encode($id) ?>;
+    sp.textContent = open ? (id ? 'Sembunyikan Detail Skema' : 'Hide Scheme Details')
+                          : (id ? 'Lihat Detail Skema' : 'View Scheme Details');
+  }
+}
 let trashOpen = true;
 function toggleTrash() {
   const list  = document.getElementById('trash-list');

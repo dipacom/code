@@ -331,6 +331,22 @@ html { scroll-behavior: smooth; }
 .sk-stat-lbl { font-size:9.5px; color:var(--text-muted); }
 
 /* Checks row — similarity + AI */
+.sk-summary{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--border);background:var(--bg-field)
+}
+.sk-summary-item{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}
+.sk-summary-item + .sk-summary-item{border-left:1px solid var(--border)}
+.sk-summary-lbl{color:var(--text-muted);font-weight:600}
+.sk-summary-val{color:var(--text-primary);font-weight:800}
+.sk-detail{display:none}
+.sk-detail.open{display:block}
+.sk-toggle{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 12px;border:0;border-top:1px solid var(--border);background:#fff;cursor:pointer;
+  font-size:11.5px;font-weight:700;color:var(--primary)
+}
+.sk-toggle svg{transition:transform .2s}
+.sk-toggle.open svg{transform:rotate(180deg)}
 .sk-checks { display:grid; grid-template-columns:1fr 1fr; background:var(--bg-field); }
 .sk-check  {
   padding:10px 13px; display:flex; align-items:center; gap:9px;
@@ -622,8 +638,7 @@ html { scroll-behavior: smooth; }
           $jab_lbl  = $jabatan_labels[$sk['jabatan_min']] ?? ucwords(str_replace('_',' ',$sk['jabatan_min']));
           $jab_short = mb_strimwidth($jab_lbl, 0, 14, '…');
         ?>
-        <a class="sk-card <?= $skemaOpen($sk)?'sk-open':'sk-closed' ?>"
-           href="<?= BASE_URL ?>/modules/penelitian/ajukan.php?skema=<?= urlencode($sk['kode']) ?>">
+        <div class="sk-card <?= $skemaOpen($sk)?'sk-open':'sk-closed' ?>">
           <!-- Banner -->
           <div class="sk-banner" style="background:linear-gradient(135deg,<?= $c1 ?> 0%,<?= $c2 ?> 100%)">
             <div class="sk-banner-row">
@@ -656,6 +671,21 @@ html { scroll-behavior: smooth; }
               <div class="sk-stat-lbl"><?= $id?'Min. Jafung':'Min. Rank' ?></div>
             </div>
           </div>
+          <div class="sk-summary">
+            <div class="sk-summary-item">
+              <span class="sk-summary-lbl"><?= $id?'Anggaran':'Budget' ?></span>
+              <span class="sk-summary-val"><?= $fmt_short((int)$sk['anggaran_total']) ?></span>
+            </div>
+            <div class="sk-summary-item">
+              <span class="sk-summary-lbl"><?= $id?'Kuota':'Quota' ?></span>
+              <span class="sk-summary-val"><?= (int)$sk['kuota'] ?></span>
+            </div>
+          </div>
+          <button type="button" class="sk-toggle" onclick="toggleSkDetail(this, event)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <span><?= $id?'Lihat Detail Skema':'View Scheme Details' ?></span>
+          </button>
+          <div class="sk-detail">
           <!-- Checks: similarity · AI detection -->
           <div class="sk-checks">
             <div class="sk-check">
@@ -711,6 +741,7 @@ html { scroll-behavior: smooth; }
               </div>
             </div>
           </div>
+          </div>
           <!-- CTA -->
           <div class="sk-cta <?= $skemaOpen($sk)?'sk-cta-open':'sk-cta-closed' ?>">
             <?php if ($skemaOpen($sk)): ?>
@@ -718,7 +749,10 @@ html { scroll-behavior: smooth; }
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
             </svg>
-            <?= $id?'Ajukan proposal pada skema ini':'Submit proposal for this scheme' ?>
+            <a href="<?= BASE_URL ?>/modules/penelitian/ajukan.php?skema=<?= urlencode($sk['kode']) ?>"
+               style="color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+              <?= $id?'Ajukan proposal pada skema ini':'Submit proposal for this scheme' ?>
+            </a>
             <?php else: ?>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -728,7 +762,7 @@ html { scroll-behavior: smooth; }
             <?= $id?'Pendaftaran ditutup':'Registration closed' ?>
             <?php endif; ?>
           </div>
-        </a>
+        </div>
         <?php endforeach; ?>
         <?php else: ?>
         <!-- Fallback: tabel skema_penelitian belum tersedia -->
@@ -1270,6 +1304,19 @@ function confirmPermDelete(form) {
     : 'Delete permanently? This cannot be undone.');
 }
 
+function toggleSkDetail(btn, ev){
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+  const detail = btn.nextElementSibling;
+  if(!detail || !detail.classList.contains('sk-detail')) return;
+  const open = detail.classList.toggle('open');
+  btn.classList.toggle('open', open);
+  const sp = btn.querySelector('span');
+  if(sp){
+    const id = <?= json_encode($id) ?>;
+    sp.textContent = open ? (id ? 'Sembunyikan Detail Skema' : 'Hide Scheme Details')
+                          : (id ? 'Lihat Detail Skema' : 'View Scheme Details');
+  }
+}
 let trashOpen = true;
 function toggleTrash() {
   const list  = document.getElementById('trash-list');

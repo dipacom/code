@@ -25,7 +25,7 @@ $proposal = $prop->fetch();
 if (!$proposal) { redirect('/modules/pengabdian/index.php'); }
 
 // Status yang boleh direvisi
-$revisable = ['gagal_admin','revisi_minor','revisi_mayor'];
+$revisable = ['gagal_admin','revisi_minor','revisi_mayor','ditolak','direvisi'];
 if (!in_array($proposal['status'], $revisable)) {
     $_SESSION['flash'] = ['type'=>'warning','msg'=>$id
         ? 'Proposal tidak dalam status yang dapat direvisi.'
@@ -273,7 +273,9 @@ $status_colors = [
 $revisi_label = match($proposal['status']) {
     'gagal_admin'  => $id ? 'Revisi Seleksi Administratif' : 'Administrative Review Revision',
     'revisi_minor' => $id ? 'Revisi Minor (Substantif)'    : 'Minor Revision (Substantive)',
+    'direvisi'     => $id ? 'Revisi (Substantif)'          : 'Revision (Substantive)',
     'revisi_mayor' => $id ? 'Revisi Mayor (Substantif)'    : 'Major Revision (Substantive)',
+    'ditolak'      => $id ? 'Perbaikan Usulan Ditolak'     : 'Rejected Proposal Correction',
     default        => 'Revisi',
 };
 ?>
@@ -526,7 +528,15 @@ $revisi_label = match($proposal['status']) {
                   <?= $id?'Putaran ke-'.$round_ke:'Round '.$round_ke ?>
                 </span>
                 <span class="rv-hero-badge" style="background:rgba(<?= $proposal['status']==='gagal_admin'?'239,68,68':'234,88,12' ?>,.18);border-color:rgba(<?= $proposal['status']==='gagal_admin'?'239,68,68':'234,88,12' ?>,.4);color:<?= $proposal['status']==='gagal_admin'?'#fca5a5':'#fdba74' ?>">
-                  <?= $proposal['status']==='gagal_admin'?($id?'Tidak Lolos Admin':'Admin Failed'):($proposal['status']==='revisi_minor'?($id?'Revisi Minor':'Minor Rev.'):($id?'Revisi Mayor':'Major Rev.')) ?>
+                  <?= $proposal['status']==='gagal_admin'
+                    ? ($id?'Tidak Lolos Admin':'Admin Failed')
+                    : ($proposal['status']==='revisi_minor'
+                        ? ($id?'Revisi Minor':'Minor Rev.')
+                        : ($proposal['status']==='direvisi'
+                            ? ($id?'Direvisi':'Revised')
+                            : ($proposal['status']==='revisi_mayor'
+                                ? ($id?'Revisi Mayor':'Major Rev.')
+                                : ($id?'Ditolak':'Rejected')))) ?>
                 </span>
               </div>
               <div class="rv-hero-title"><?= htmlspecialchars($proposal['judul']) ?></div>

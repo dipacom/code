@@ -117,58 +117,123 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$profil_kurang) {
         $path_cek_sim     = ($f_cek_mandiri && $f_cek_mandiri['error']===0) ? $save($f_cek_mandiri, 'sim') : null;
         $path_cek_ai      = ($f_ai_mandiri  && $f_ai_mandiri['error']===0)  ? $save($f_ai_mandiri,  'ai')  : null;
 
-        $stmt = $pdo->prepare("
-            INSERT INTO ethical_clearance
-                (user_id, ketua_peneliti, judul_penelitian, nama_jurnal,
-                 melibatkan_manusia, melibatkan_hewan, anggota_tim, deskripsi,
-                 file_surat_permohonan, file_surat_pernyataan,
-                 file_persetujuan_subjek, file_laporan,
-                 file_proposal, file_surat_izin,
-                 file_path, file_name, file_size,
-                 similarity_mandiri, platform_mandiri, file_cek_mandiri,
-                 ai_mandiri, platform_ai_mandiri, file_ai_mandiri,
-                 status)
-            VALUES (?,?,?,?, ?,?,?,?, ?,?,?,?, ?,?, ?,?,?, ?,?,?,?,?,?,'menunggu')
-        ");
-        $stmt->execute([
-            $uid, $ketua_peneliti ?: null, $judul, $jurnal ?: null,
-            $mns_manusia, $mns_hewan, $anggota ?: null, $deskripsi ?: null,
-            $path_permohonan, $path_pernyataan,
-            $path_persetujuan, $path_laporan,
-            $path_proposal, $path_surat_izin,
-            $path_laporan, $f_laporan['name'], $f_laporan['size'],
-            $sim_mandiri, $plat_sim ?: null, $path_cek_sim,
-            $ai_mandiri,  $plat_ai  ?: null, $path_cek_ai,
-        ]);
-
-        writeLog($pdo, (int)$uid, $_SESSION['role'] ?? 'mahasiswa', 'permohonan_ec',
-            "Ajukan Ethical Clearance: {$judul}");
-
-        $admin_stmt = $pdo->prepare("SELECT id FROM users WHERE role='admin' AND is_active=1");
-        $admin_stmt->execute();
-        foreach ($admin_stmt->fetchAll() as $admin) {
-            $pdo->prepare("INSERT INTO notifikasi (user_id, judul, pesan, tipe) VALUES (?,?,?,'info')")
-                ->execute([$admin['id'], 'Permohonan Baru: Ethical Clearance',
-                    "{$_SESSION['nama']} mengajukan Ethical Clearance: {$judul}"]);
+        // Kompatibilitas skema DB: beberapa instance belum punya kolom baru
+        $ec_cols = [];
+        try {
+            $qCols = $pdo->query("SHOW COLUMNS FROM ethical_clearance");
+            foreach ($qCols->fetchAll(PDO::FETCH_ASSOC) as $c) {
+                $ec_cols[$c['Field']] = true;
+            }
+        } catch (\Throwable $e) {
+            $error = $lang==='id'
+                ? 'Gagal membaca struktur tabel Ethical Clearance.'
+                : 'Failed to read Ethical Clearance table structure.';
         }
 
-        require_once '../../includes/email.php';
-        kirimEmailAdmin($pdo,
-            'Permohonan Ethical Clearance Baru — ' . $_SESSION['nama'],
-            $f_laporan['name'], $_SESSION['nama'], 'Surat Ethical Clearance'
-        );
-        $emailUser = $pdo->prepare("SELECT email FROM users WHERE id=?");
-        $emailUser->execute([$uid]);
-        $em = $emailUser->fetchColumn();
-        if ($em) kirimEmailKonfirmasiUpload($em, $_SESSION['nama'], 'Permohonan Ethical Clearance', $f_laporan['name']);
+        if (!$error) {
+            $insCols = [];
+            $insVals = [];
 
-        $_SESSION['flash'] = [
-            'type' => 'success',
-            'msg'  => $lang==='id'
-                ? 'Permohonan Ethical Clearance berhasil diajukan! Admin LPPM akan segera memprosesnya.'
-                : 'Ethical Clearance application submitted! LPPM admin will process it shortly.',
-        ];
-        redirect('/dashboard.php');
+            $addCol = function(string $col, $val) use (&$insCols, &$insVals, $ec_cols) {
+                if (!empty($ec_cols[$col])) {
+                    $insCols[] = $col;
+                    $insVals[] = $val;
+                }
+            };
+
+            // kolom inti
+            $addCol('user_id', $uid);
+            $addCol('judul_penelitian', $judul);
+            $addCol('nama_jurnal', $jurnal ?: null);
+
+            // mapping kompatibel antar versi schema
+            $addCol('ketua_peneliti', $ketua_peneliti ?: null); // schema baru
+            $addCol('nama_ketua', $ketua_peneliti ?: null);     // fallback schema lama/varian
+
+            $addCol('melibatkan_manusia', $mns_manusia);               // schema baru
+            $addCol('melibatkan_subjek_manusia', $mns_manusia);        // schema lama
+
+            $addCol('melibatkan_hewan', $mns_hewan);
+            $addCol('anggota_tim', $anggota ?: null);
+            $addCol('deskripsi', $deskripsi ?: null);
+            $addCol('abstrak', $deskripsi ?: null); // fallback schema lama
+
+            // file utama
+            $addCol('file_surat_permohonan', $path_permohonan);
+            $addCol('file_surat_permohonan_name', $f_permohonan['name'] ?? null);
+
+            $addCol('file_surat_pernyataan', $path_pernyataan);
+            $addCol('file_surat_pernyataan_name', $f_pernyataan['name'] ?? null);
+
+            $addCol('file_persetujuan_subjek', $path_persetujuan);
+            $addCol('file_persetujuan_subjek_name', $f_persetujuan['name'] ?? null);
+
+            $addCol('file_laporan', $path_laporan); // schema baru
+
+            $addCol('file_proposal', $path_proposal);
+            $addCol('file_proposal_name', $f_proposal['name'] ?? null);
+
+            $addCol('file_surat_izin', $path_surat_izin);
+
+            // fallback field file umum (schema lama)
+            $addCol('file_path', $path_laporan);
+            $addCol('file_name', $f_laporan['name'] ?? null);
+            $addCol('file_size', $f_laporan['size'] ?? null);
+
+            // self-check
+            $addCol('similarity_mandiri', $sim_mandiri);
+            $addCol('platform_mandiri', $plat_sim ?: null);
+            $addCol('file_cek_mandiri', $path_cek_sim);
+
+            $addCol('ai_mandiri', $ai_mandiri);
+            $addCol('platform_ai_mandiri', $plat_ai ?: null);
+            $addCol('file_ai_mandiri', $path_cek_ai);
+
+            // status
+            $addCol('status', 'menunggu');
+
+            if (empty($insCols)) {
+                $error = $lang==='id'
+                    ? 'Tidak ada kolom yang cocok untuk menyimpan permohonan Ethical Clearance.'
+                    : 'No compatible columns found to save Ethical Clearance submission.';
+            } else {
+                $placeholders = implode(',', array_fill(0, count($insCols), '?'));
+                $sql = "INSERT INTO ethical_clearance (" . implode(',', $insCols) . ") VALUES ($placeholders)";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($insVals);
+            }
+        }
+
+        if (!$error) {
+            writeLog($pdo, (int)$uid, $_SESSION['role'] ?? 'mahasiswa', 'permohonan_ec',
+                "Ajukan Ethical Clearance: {$judul}");
+
+            $admin_stmt = $pdo->prepare("SELECT id FROM users WHERE role='admin' AND is_active=1");
+            $admin_stmt->execute();
+            foreach ($admin_stmt->fetchAll() as $admin) {
+                $pdo->prepare("INSERT INTO notifikasi (user_id, judul, pesan, tipe) VALUES (?,?,?,'info')")
+                    ->execute([$admin['id'], 'Permohonan Baru: Ethical Clearance',
+                        "{$_SESSION['nama']} mengajukan Ethical Clearance: {$judul}"]);
+            }
+
+            require_once '../../includes/email.php';
+            kirimEmailAdmin($pdo,
+                'Permohonan Ethical Clearance Baru — ' . $_SESSION['nama'],
+                $f_laporan['name'], $_SESSION['nama'], 'Surat Ethical Clearance'
+            );
+            $emailUser = $pdo->prepare("SELECT email FROM users WHERE id=?");
+            $emailUser->execute([$uid]);
+            $em = $emailUser->fetchColumn();
+            if ($em) kirimEmailKonfirmasiUpload($em, $_SESSION['nama'], 'Permohonan Ethical Clearance', $f_laporan['name']);
+
+            $_SESSION['flash'] = [
+                'type' => 'success',
+                'msg'  => $lang==='id'
+                    ? 'Permohonan Ethical Clearance berhasil diajukan! Admin LPPM akan segera memprosesnya.'
+                    : 'Ethical Clearance application submitted! LPPM admin will process it shortly.',
+            ];
+            redirect('/dashboard.php');
+        }
     }
 }
 
