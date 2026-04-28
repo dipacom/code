@@ -1,0 +1,22 @@
+TODO Progress
+
+- [x] Analisis akar masalah HTTP 500 submit Ethical Clearance.
+- [x] Perbaikan kompatibilitas schema insert di `modules/ethical_clearance/upload.php`.
+- [x] Lint check `modules/ethical_clearance/upload.php`.
+- [x] Rekonstruksi popup "Tinjau" admin Ethical Clearance jadi modal modern.
+  - [x] Header modern + close icon SVG kanan atas.
+  - [x] Section card modern dengan ikon SVG outline per bagian.
+  - [x] Semua informasi existing tetap tampil (termasuk fallback schema lama/baru).
+  - [x] Tombol "Tutup" di footer bawah.
+- [x] Lint check `admin/ethical_clearance.php`.
+- [x] Smoke test halaman admin Ethical Clearance.
+- [x] Thorough testing A–D modal Tinjau:
+  - [x] A) Render: 1× `.ec-modal`, 5–6 section cards (Identitas, Data Penelitian, Catatan Sebelumnya, Update Status, Lampiran Dokumen, Surat Bertandatangan, Surat Digital), 50× `.ec-section*` markers, ikon SVG outline tampil di tiap heading.
+  - [x] B) Close controls: ikon X (`.ec-modal__close`), tombol Tutup footer (`.ec-modal__footer`), 4× hook `closeDetail()`, ESC key handler aktif.
+  - [x] C) Backend actions dari modal:
+    - [x] POST `aksi=diproses` + `catatan=__test__` → status berubah ke `diproses`, catatan tersimpan (verified pada filter `?status=diproses`).
+    - [x] Upload `file_surat_signed` (PDF) → 302 + file `EC_signed_2_*.pdf` tersimpan di `uploads/ethical_clearance/signed/` + label "Sudah diunggah" muncul.
+    - [x] Hapus surat signed → 302 + folder bersih + label kembali "Belum diunggah".
+    - [x] Endpoint cetak surat digital `modules/ethical_clearance/surat.php` merespons sesuai kondisi (warning saat `nomor_surat` kosong).
+  - [x] D) Cleanup state DB id=2 → status=menunggu, catatan/nomor/reviewed_* di-NULL-kan.
+- [x] Push branch `blackboxai/comprehensive-analysis-pr` ke `origin` (commit `5dc1f4b`).
